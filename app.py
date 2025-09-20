@@ -3,49 +3,81 @@ import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 import os
 
-st.title("🎬 YouTube Downloader & Transcript App")
 
-url = st.text_input("Enter YouTube Video URL:")
+FFMPEG_PATH = r"C:\Users\singh\Downloads\ffmpeg\ffmpeg\bin\ffmpeg.exe"
+# -----------------------------
 
-video_file = "downloaded_video.mp4"
-audio_file = "downloaded_audio.mp3"
+st.set_page_config(page_title="YouTube Downloader & Transcript", layout="centered")
+st.markdown("<h1 style='text-align:center'>🎬 YouTube Downloader & Transcript App</h1>", unsafe_allow_html=True)
 
-# --- Video Download ---
-if st.button("⬇️ Download Video"):
+st.write("Enter a YouTube URL to download video, audio, or view transcript.")
+
+url = st.text_input("YouTube Video URL:")
+
+st.markdown("---")
+
+# ----------------------------- VIDEO DOWNLOAD -----------------------------
+st.subheader("📹 Video Download (MP4 with audio)")
+if st.button("⬇️ Download Video (MP4)"):
     if url:
         try:
             ydl_opts = {
                 'format': 'bestvideo+bestaudio/best',
-                'outtmpl': video_file
+                'outtmpl': 'downloaded_video.mp4',
+                'merge_output_format': 'mp4',
+                'ffmpeg_location': FFMPEG_PATH
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
-            st.success("✅ Video downloaded successfully with audio!")
+            st.success("✅ Video downloaded successfully!")
         except Exception as e:
-            st.error(f" Error: {e}")
+            st.error(f"❌ Error: {e}")
     else:
-        st.warning(" Please enter a valid YouTube URL")
+        st.warning("⚠️ Please enter a valid YouTube URL")
 
-# --- Audio Download ---
-if st.button("🎵 Download Audio"):
+# Download button for saved video
+if os.path.exists("downloaded_video.mp4"):
+    with open("downloaded_video.mp4", "rb") as f:
+        st.download_button("💾 Save Video to Device", f, file_name="video.mp4")
+
+st.markdown("---")
+
+# ----------------------------- AUDIO DOWNLOAD -----------------------------
+st.subheader("🎵 Audio Download (MP3)")
+if st.button("⬇️ Download Audio (MP3)"):
     if url:
         try:
             ydl_opts = {
                 'format': 'bestaudio/best',
-                'outtmpl': audio_file
+                'outtmpl': 'downloaded_audio.mp3',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'ffmpeg_location': FFMPEG_PATH
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
             st.success("✅ Audio downloaded successfully!")
         except Exception as e:
-            st.error(f" Error: {e}")
+            st.error(f"❌ Error: {e}")
     else:
-        st.warning(" Please enter a valid YouTube URL")
+        st.warning("⚠️ Please enter a valid YouTube URL")
 
-# --- Transcript ---
-if st.checkbox("Show Transcript (if available)"):
+# Download button for saved audio
+if os.path.exists("downloaded_audio.mp3"):
+    with open("downloaded_audio.mp3", "rb") as f:
+        st.download_button("💾 Save Audio to Device", f, file_name="audio.mp3")
+
+st.markdown("---")
+
+# ----------------------------- TRANSCRIPT -----------------------------
+st.subheader("📝 Transcript (Optional)")
+if st.checkbox("Show Transcript"):
     if url:
         try:
+            # extract video ID from URL
             if "v=" in url:
                 video_id = url.split("v=")[-1].split("&")[0]
             elif "shorts/" in url:
@@ -57,13 +89,4 @@ if st.checkbox("Show Transcript (if available)"):
             text = " ".join([t['text'] for t in transcript])
             st.text_area("Transcript:", text, height=300)
         except Exception:
-            st.error("❌ Transcript not available.")
-
-# --- Save Buttons ---
-if os.path.exists(video_file):
-    with open(video_file, "rb") as f:
-        st.download_button("⬇️ Save Video to My PC", f, file_name="video.mp4")
-
-if os.path.exists(audio_file):
-    with open(audio_file, "rb") as f:
-        st.download_button("⬇️ Save Audio to My PC", f, file_name="audio.mp3")
+            st.error("❌ Transcript not available or error occurred.")
